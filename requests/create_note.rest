@@ -1,0 +1,9 @@
+POST http://localhost:3001/api/results 
+Content-Type: application/json
+
+{
+    "name": "Testing",
+    "age": "26",
+    "score": 35,
+    "testResults": [{"question": "Test", "value": 1, "index": 1}]
+}
