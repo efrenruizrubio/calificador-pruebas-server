@@ -26,11 +26,13 @@ app.get('/api/results', async (request, response) => {
 
   const results = result.map((r) => {
     const p = patient.find((pf) => pf.Id === r.PacienteId)
+    const obj = { id: p.Id, name: p.Name, email: p.Email, psicologoId: p.PsicologoId, age: p.Age }
     return {
       id: r.Id,
-      patient: p,
+      patient: obj,
       score: r.Puntaje,
-      testResults: JSON.parse(r.Respuesta)
+      testResults: JSON.parse(r.Respuesta),
+      appliedTest: r.TestAplicado
     }
   })
 
@@ -46,6 +48,7 @@ app.get('/api/results/:id', async (request, response) => {
     response.status(404).json({ error: `El registro con el id '${id}' no existe en la base de datos` })
   }
 })
+
 /*
 app.delete('/api/results/:id', (request, response) => {
   const id = Number(request.params.id)
@@ -54,7 +57,7 @@ app.delete('/api/results/:id', (request, response) => {
 }) */
 
 app.post('/api/results', async (request, response) => {
-  const { name, email, age, score, testResults } = request.body
+  const { name, email, age, score, testResults, appliedTest } = request.body
   if (!name) {
     return response.status(400).json({
       error: 'The name of the patient is missing'
@@ -77,26 +80,24 @@ app.post('/api/results', async (request, response) => {
   }
   if (!testResults.length) {
     return response.status(400).json({
-      error: 'The results of the test is missing'
+      error: 'The results of the test are missing'
     })
   }
 
   const [patient] = await pool.query('SELECT * FROM Paciente WHERE Email = ?', email)
   let patientId
   if (!patient[0]) {
-    console.log("doesn't exist")
     const [result] = await pool.query(`
     INSERT INTO Paciente (Name, Email, Age, PsicologoId) VALUES (?, ?, ?, ?)
     `, [name, email, age, 1])
-    console.log(result)
     patientId = result.insertId
   } else {
     patientId = patient[0].Id
   }
 
   await pool.query(`
-  INSERT INTO Resultado (Respuesta, PsicologoId, PacienteId, Puntaje) VALUES (?, ?, ?, ?)
-  `, [JSON.stringify(testResults), 1, patientId, score])
+  INSERT INTO Resultado (Respuesta, PsicologoId, PacienteId, Puntaje, TestAplicado) VALUES (?, ?, ?, ?, ?)
+  `, [JSON.stringify(testResults), 1, patientId, score, Number(appliedTest)])
   response.status(204).end()
 })
 
@@ -106,5 +107,4 @@ app.use((request, response) => {
 
 const PORT = 3001
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
 })
