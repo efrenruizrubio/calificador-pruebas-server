@@ -1,6 +1,6 @@
 const express = require('express')
 const cors = require('cors')
-const mysql = require('mysql2')
+const resultsRouter = require('./controllers/results')
 
 require('dotenv').config()
 
@@ -9,18 +9,11 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE
-}).promise()
-
 app.get('/', (request, response) => {
   response.send('<h1>Hello World</h1>')
 })
 
-app.get('/api/results', async (request, response) => {
+/* app.get('/api/results', async (request, response) => {
   const [result] = await pool.query('SELECT * FROM Resultado')
   const [patient] = await pool.query('SELECT * FROM Paciente')
 
@@ -37,9 +30,9 @@ app.get('/api/results', async (request, response) => {
   })
 
   response.status(200).json(results)
-})
+}) */
 
-app.get('/api/results/:id', async (request, response) => {
+/* app.get('/api/results/:id', async (request, response) => {
   const id = Number(request.params.id)
   const [result] = await pool.query('SELECT * FROM Resultado WHERE id = ?', id)
   if (result.length) {
@@ -47,7 +40,7 @@ app.get('/api/results/:id', async (request, response) => {
   } else {
     response.status(404).json({ error: `El registro con el id '${id}' no existe en la base de datos` })
   }
-})
+}) */
 
 /*
 app.delete('/api/results/:id', (request, response) => {
@@ -56,7 +49,7 @@ app.delete('/api/results/:id', (request, response) => {
   response.status(204).end()
 }) */
 
-app.post('/api/results', async (request, response) => {
+/* app.post('/api/results', async (request, response) => {
   const { name, email, age, score, testResults, appliedTest } = request.body
   if (!name) {
     return response.status(400).json({
@@ -99,7 +92,9 @@ app.post('/api/results', async (request, response) => {
   INSERT INTO Resultado (Respuesta, PsicologoId, PacienteId, Puntaje, TestAplicado) VALUES (?, ?, ?, ?, ?)
   `, [JSON.stringify(testResults), 1, patientId, score, Number(appliedTest)])
   response.status(204).end()
-})
+}) */
+
+app.use('/api/results', resultsRouter)
 
 app.use((request, response) => {
   response.status(404).json({ error: 'Not found' })
