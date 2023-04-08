@@ -1,13 +1,13 @@
 const resultsRouter = require('express').Router()
 const pool = require('../database')
 
-resultsRouter.get('/', async (request, response) => {
+resultsRouter.get('/getCount', async (request, response) => {
   const [result] = await pool.query('SELECT COUNT(Id) FROM Resultado')
 
   response.status(200).json(result[0])
 })
 
-resultsRouter.post('/', async (request, response) => {
+resultsRouter.post('/getAll', async (request, response) => {
   const [result] = await pool.query('SELECT * FROM Resultado')
   const [patient] = await pool.query('SELECT * FROM Paciente')
 
@@ -26,7 +26,7 @@ resultsRouter.post('/', async (request, response) => {
   response.status(200).json(results).end()
 })
 
-resultsRouter.post('/', async (request, response) => {
+resultsRouter.post('/newResult', async (request, response) => {
   const { name, email, age, score, testResults, appliedTest, status } = request.body
   if (!name) {
     return response.status(400).json({
