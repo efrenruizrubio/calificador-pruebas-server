@@ -7,9 +7,9 @@ resultsRouter.get('/getCount', async (request, response) => {
   response.status(200).json(result[0])
 })
 
-resultsRouter.post('/getAll', async (request, response) => {
-  const { page, limit, filter } = request.body
-  const [result] = await pool.query(`SELECT * FROM Resultado WHERE PacienteId LIKE ${filter ?? "'%'"} LIMIT ${(page * limit) - limit}, ${limit}`)
+resultsRouter.get('/getAll', async (request, response) => {
+  // const [result] = await pool.query(`SELECT * FROM Resultado WHERE PacienteId LIKE ${filter ?? "'%'"} LIMIT ${(page * limit) - limit}, ${limit}`)
+  const [result] = await pool.query('SELECT * FROM Resultado')
   const [patient] = await pool.query('SELECT * FROM Paciente')
 
   const results = result.map((r) => {
@@ -25,6 +25,31 @@ resultsRouter.post('/getAll', async (request, response) => {
     }
   })
   response.status(200).json(results).end()
+})
+
+resultsRouter.post('/getFiltered', async (request, response) => {
+  const { filter } = request.body
+  const [patient] = await pool.query(`SELECT * FROM Paciente WHERE Name LIKE '%${filter}%'`)
+  const ids = patient.map((p) => p.Id)
+  if (ids.length) {
+    const [result] = await pool.query(`SELECT * FROM Resultado WHERE PacienteId IN (${ids.join(',')})`)
+    const results = result.map((r) => {
+      const p = patient.find((pf) => pf.Id === r.PacienteId)
+      const obj = { id: p.Id, name: p.Name, email: p.Email, psicologoId: p.PsicologoId, age: p.Age }
+      return {
+        id: r.Id,
+        patient: obj,
+        score: r.Puntaje,
+        testResults: JSON.parse(r.Respuesta),
+        appliedTest: r.TestAplicado,
+        status: r.Estado
+      }
+    })
+    return response.status(200).json(results)
+  }
+  return response.status(404).json({
+    error: 'No se encuentran tests registrados con el nombre ingresado'
+  })
 })
 
 resultsRouter.post('/newResult', async (request, response) => {
