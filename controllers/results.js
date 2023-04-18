@@ -1,30 +1,37 @@
 const resultsRouter = require('express').Router()
 const pool = require('../database')
 
-resultsRouter.get('/getCount', async (request, response) => {
-  const [result] = await pool.query('SELECT COUNT(Id) FROM Resultado')
-
-  response.status(200).json(result[0])
+resultsRouter.post('/getCount', async (request, response) => {
+  const { filter } = request.body
+  if (!filter) {
+    const [result] = await pool.query('SELECT COUNT(Id) FROM Resultado')
+    response.status(200).json(result[0])
+  }
 })
 
-resultsRouter.get('/getAll', async (request, response) => {
-  // const [result] = await pool.query(`SELECT * FROM Resultado WHERE PacienteId LIKE ${filter ?? "'%'"} LIMIT ${(page * limit) - limit}, ${limit}`)
-  const [result] = await pool.query('SELECT * FROM Resultado')
-  const [patient] = await pool.query('SELECT * FROM Paciente')
-
-  const results = result.map((r) => {
-    const p = patient.find((pf) => pf.Id === r.PacienteId)
-    const obj = { id: p.Id, name: p.Name, email: p.Email, psicologoId: p.PsicologoId, age: p.Age }
-    return {
-      id: r.Id,
-      patient: obj,
-      score: r.Puntaje,
-      testResults: JSON.parse(r.Respuesta),
-      appliedTest: r.TestAplicado,
-      status: r.Estado
-    }
+resultsRouter.post('/getAll', async (request, response) => {
+  const { page, limit } = request.body
+  const [result] = await pool.query(`SELECT * FROM Resultado LIMIT ${(page * limit) - limit}, ${limit}`)
+  const ids = result.map((p) => p.PacienteId)
+  if (ids.length) {
+    const [patient] = await pool.query(`SELECT * FROM Paciente WHERE Id IN (${ids.join(',')})`)
+    const results = result.map((r) => {
+      const p = patient.find((pf) => pf.Id === r.PacienteId)
+      const obj = { id: p.Id, name: p.Name, email: p.Email, psicologoId: p.PsicologoId, age: p.Age }
+      return {
+        id: r.Id,
+        patient: obj,
+        score: r.Puntaje,
+        testResults: JSON.parse(r.Respuesta),
+        appliedTest: r.TestAplicado,
+        status: r.Estado
+      }
+    })
+    return response.status(200).json(results).end()
+  }
+  return response.status(404).json({
+    error: 'No se encuentran tests registrados con el nombre ingresado'
   })
-  response.status(200).json(results).end()
 })
 
 resultsRouter.post('/getFiltered', async (request, response) => {
